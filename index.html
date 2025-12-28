@@ -20,7 +20,6 @@ setGravity(0);
 let scoreYou = 0;
 let scoreAI = 0;
 
-// Built-in sprites (no download needed!)
 loadSprite("ball", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA8klEQVRYhc2XQRaFIAhFofP34f6X5Ur4k+wUgghq9oYWvBtCGcBmYSSIiEhMhujO1x2gmaqJO2HMm7zGXpDmxVHzHgj1QjFPKQEAQM7ZZcrjNAhxkYioJOCyQFpxEsQhmTcdBiTlRukG7SmKtCr0xt0rUVXgbV0kvDwreuBhfFbhuxUomjWGlfFZAWyZrxYi4vYt+PEFa5Rm6L4t2yuwHWB7E5pjqIn3indMh15EUqNGm9cN0DKKQIhfw1EDazs+9TV8AESO1V5xj6oCKyGk3OahlCt6WnIdSqMQXnMTwAMRMe8CsEDUxLN+zTwwb0zRdP0Bd7WBqUNv+GkAAAAASUVORK5CYII=");
 loadSprite("player", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAoCAYAAADt5povAAAArElEQVRYhWNgGO6AkVQN/+9s+Y9igIoPSWaQpBjdMnIsJVohLstItZQoRYQsI8VSggqItYxYS5lIMYwaYPhbOPgSDbGWUjVbELKUJhkfl6XUL9qMppGUDxnOZY3mQ/oCzPAmNc4IAbQ4Hf5BOmrhqIUkA6LL0v9nM/EbZDwdwhgtS+ltIfFNjP//8TcxGBmJMmtw+tBITgTFd+cevWHEJ44PDP9EM2rhqIUkAwAmXDw/nyC8BAAAAABJRU5ErkJggg==");
 loadSprite("computer", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAoCAYAAADt5povAAAArklEQVRYhe2WPRJAMBCFN86gViloNRzCcR2CRkuhUrvDqhQYyT4TJpPZV2Ze9pvs34Qodhn0Ai8dnwLkLRQDMl9hb6Bi4xMMhYpMLhgCdRqkMCk0QYL5UPzA8JpGCvU6Fi7oJ4P/BPW+2vqigOawmWedw391yzdaM5euNY0/pQpUICzxLq2nyeobypKIdJeGWMNDzGz/YhgjihXmC6ssPb1uXDdjO7cp/qZRoAJh7a/iPz/0YJVUAAAAAElFTkSuQmCC");
@@ -34,29 +33,58 @@ function makeBall() {
     "ball"
   ]);
   b.action(() => { b.vel = b.vel.scale(0.98); });
+  return b;
 }
 
 scene("game", () => {
-  add([text(`You: ${scoreYou}   AI: ${scoreAI}`), pos(20, 10), scale(2), layer("ui")]);
-  onUpdate(() => { text(`You: ${scoreYou}   AI: ${scoreAI}`, pos(20, 10), scale(2), layer("ui")).text = `You: ${scoreYou}   AI: ${scoreAI}`; });
+  const scoreText = add([
+    text("You: 0   AI: 0"),
+    pos(20, 10),
+    scale(2),
+    layer("ui")
+  ]);
 
+  onUpdate(() => {
+    scoreText.text = `You: ${scoreYou}   AI: ${scoreAI}`;
+  });
+
+  // Walls
   add([rect(width(), 25), pos(0, 0), solid(), color(255), opacity(0.5)]);
   add([rect(width(), 25), pos(0, height()-25), solid(), color(255), opacity(0.5)]);
+
+  // Goals
   add([rect(25, 180), pos(5, height()/2 - 90), area(), color(255), "aiGoal"]);
   add([rect(25, 180), pos(width()-30, height()/2 - 90), area(), color(255), "yourGoal"]);
+
+  // Side walls
   add([rect(25, 150), pos(0, 75), solid(), opacity(0.3)]);
   add([rect(25, 150), pos(0, height()-225), solid(), opacity(0.3)]);
   add([rect(25, 150), pos(width()-25, 75), solid(), opacity(0.3)]);
   add([rect(25, 150), pos(width()-25, height()-225), solid(), opacity(0.3)]);
 
-  const player = add([sprite("player", { scale: 0.8 }), pos(80, height()/2), area(), body(), "player"]);
-  const computer = add([sprite("computer", { scale: 0.8 }), pos(width()-120, height()/2), area(), body(), "computer"]);
+  const player = add([
+    sprite("player", { scale: 0.8 }),
+    pos(80, height()/2),
+    area(),
+    body(),
+    "player"
+  ]);
 
+  const computer = add([
+    sprite("computer", { scale: 0.8 }),
+    pos(width()-120, height()/2),
+    area(),
+    body(),
+    "computer"
+  ]);
+
+  // Controls
   onKeyDown("left", () => player.move(-250, 0));
   onKeyDown("right", () => player.move(250, 0));
   onKeyDown("up", () => player.move(0, -250));
   onKeyDown("down", () => player.move(0, 250));
 
+  // AI chase
   computer.action(() => {
     const balls = get("ball");
     if (balls.length) {
@@ -65,11 +93,27 @@ scene("game", () => {
     }
   });
 
-  player.onCollide("ball", (b) => { const dir = b.pos.sub(player.pos).unit().scale(800); b.impulse(dir.x, dir.y); });
-  computer.onCollide("ball", (b) => { const dir = b.pos.sub(computer.pos).unit().scale(700); b.impulse(dir.x, dir.y); });
+  // Kicks
+  player.onCollide("ball", (b) => {
+    const dir = b.pos.sub(player.pos).unit().scale(800);
+    b.impulse(dir.x, dir.y);
+  });
+  computer.onCollide("ball", (b) => {
+    const dir = b.pos.sub(computer.pos).unit().scale(700);
+    b.impulse(dir.x, dir.y);
+  });
 
-  onCollide("yourGoal", "ball", () => { scoreYou++; destroy(get("ball")[0]); wait(1, makeBall); });
-  onCollide("aiGoal", "ball", () => { scoreAI++; destroy(get("ball")[0]); wait(1, makeBall); });
+  // Goals!
+  onCollide("yourGoal", "ball", (g, b) => {
+    scoreYou++;
+    destroy(b);
+    wait(1, makeBall);
+  });
+  onCollide("aiGoal", "ball", (g, b) => {
+    scoreAI++;
+    destroy(b);
+    wait(1, makeBall);
+  });
 
   makeBall();
 });
